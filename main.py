@@ -26,7 +26,6 @@ class AutoNiconico:
         except Exception as e:
             return
 
-        print('広告出た')
         sleep(7.5)
 
         try:
@@ -35,7 +34,7 @@ class AutoNiconico:
             skip_button = self.driver.find_element_by_class_name('videoAdUiRedesignedSkipButton')
             skip_button.click()
         except NoSuchElementException:
-            print('スキップできないタイプの広告')
+            pass
         finally:
             self.driver.switch_to.parent_frame()
 
