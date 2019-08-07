@@ -16,6 +16,22 @@ class AutoNiconico:
         add_chromedriver_to_path()
         self.driver = webdriver.Chrome()
 
+    def login(self, username='', password=''):
+        self.driver.get('https://account.nicovideo.jp/login')
+        username_input = self.driver.find_element_by_id('input__mailtel')
+        password_input = self.driver.find_element_by_id('input__password')
+
+        username_input.send_keys(username)
+        password_input.send_keys(password)
+
+        if username and password:
+            self.driver.find_element_by_id('login__submit').click()
+        else:
+            while True:
+                p = parse.urlparse(self.driver.current_url)
+                if p.netloc != 'account.nicovideo.jp':
+                    break
+
     def play(self, url, comment_off=True):
         self.driver.get(url)
 
@@ -108,10 +124,23 @@ if __name__ == '__main__':
     try:
         url = sys.argv[1]
     except IndexError:
-        sys.stderr.write(f'Usage: python {sys.argv[0]} ランキングのURL [-l --loop] [-s --shuffle] [-c --no-comment]')
+        sys.stderr.write(
+            f'Usage: python {sys.argv[0]} ランキングのURL [-l --loop] [-s --shuffle] [-c --no-comment] [-a --login] [--user=username] [--password=password]')
         exit(1)
-    loop = '--loop' in sys.argv or '-l' in sys.argv
-    shuffle = '--shuffle' in sys.argv or '-s' in sys.argv
-    no_comment = '--no-comment' in sys.argv or '-c' in sys.argv
+    argv = set(sys.argv)
+    loop = '--loop' in argv or '-l' in argv
+    shuffle = '--shuffle' in argv or '-s' in argv
+    no_comment = '--no-comment' in argv or '-c' in argv
+    login = '--login' in argv or '-a' in argv
+    user = ''
+    password = ''
+    for arg in sys.argv:
+        if arg[:7] == '--user=':
+            user = arg[7:]
+        if arg[:11] == '--password=':
+            password = arg[11:]
+
     niconico = AutoNiconico()
+    if login:
+        niconico.login(username=user, password=password)
     niconico.play_ranking(url, loop=loop, shuffle=shuffle, comment_off=no_comment)
