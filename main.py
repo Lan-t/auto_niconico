@@ -16,33 +16,40 @@ class AutoNiconico:
         add_chromedriver_to_path()
         self.driver = webdriver.Chrome()
 
-    def play(self, url):
+    def play(self, url, comment_off=True):
         self.driver.get(url)
 
         self.click_play_pause_button()
 
         try:
-            self.driver.find_element_by_class_name('VideoAdContainer')
-        except Exception as e:
-            return
-
-        sleep(7.5)
-
-        try:
-            ad_frame = self.driver.find_element_by_xpath('//*[@id="IMALinearView"]/div[1]/iframe')
-            self.driver.switch_to.frame(ad_frame)
-            skip_button = self.driver.find_element_by_class_name('videoAdUiRedesignedSkipButton')
-            skip_button.click()
+            sleep(2)
+            self.driver.find_element_by_xpath('//*[@id="IMALinearView"]/div[1]/iframe')
         except NoSuchElementException:
             pass
-        finally:
-            self.driver.switch_to.parent_frame()
+        else:
+            sleep(5)
+
+            try:
+                ad_frame = self.driver.find_element_by_xpath('//*[@id="IMALinearView"]/div[1]/iframe')
+                self.driver.switch_to.frame(ad_frame)
+                skip_button = self.driver.find_element_by_class_name('videoAdUiRedesignedSkipButton')
+                skip_button.click()
+            except NoSuchElementException:
+                sleep(2)
+            finally:
+                self.driver.switch_to.parent_frame()
+
+        if comment_off and self.comment_is_on():
+            self.click_comment_on_off_button()
 
     def click_play_pause_button(self):
         try:
             self.driver.find_element_by_class_name('PlayerPlayButton').click()
         except NoSuchElementException:
             self.driver.find_element_by_class_name('PlayerPauseButton').click()
+
+    def click_comment_on_off_button(self):
+        self.driver.find_element_by_class_name('CommentOnOffButton').click()
 
     def get_duration(self):
         duration_panel = self.driver.find_element_by_class_name('PlayerPlayTime-duration')
@@ -52,8 +59,16 @@ class AutoNiconico:
         playtime_panel = self.driver.find_element_by_class_name('PlayerPlayTime-playtime')
         return playtime_panel.text
 
-    def is_ended(self):
+    def video_is_ended(self):
         return self.get_duration() == self.get_playtime()
+
+    def comment_is_on(self):
+        try:
+            self.driver.find_element_by_class_name('CommentOnOffButton-iconShow')
+        except NoSuchElementException:
+            return True
+        else:
+            return False
 
     def get_urls_from_ranking(self, url) -> List[str]:
         pr = parse.urlparse(url)
@@ -67,7 +82,7 @@ class AutoNiconico:
 
         return [i[link].text for i in items]
 
-    def play_ranking(self, url, loop=True, shuffle=False):
+    def play_ranking(self, url, loop=True, shuffle=False, comment_off=True):
         urls = self.get_urls_from_ranking(url)
 
         playlist_p = range(len(urls))
@@ -81,20 +96,22 @@ class AutoNiconico:
         while True:
             url_p = urls[next(playlist_p)]
 
-            self.play(url_p)
+            self.play(url_p, comment_off=comment_off)
 
-            while not self.is_ended():
+            while not self.video_is_ended():
                 sleep(0.9)
 
 
 if __name__ == '__main__':
     import sys
+
     try:
         url = sys.argv[1]
     except IndexError:
-        sys.stderr.write(f'Usage: python {sys.argv[0]} ランキングのURL [-l --loop] [-s --shuffle]')
+        sys.stderr.write(f'Usage: python {sys.argv[0]} ランキングのURL [-l --loop] [-s --shuffle] [-c --no-comment]')
         exit(1)
     loop = '--loop' in sys.argv or '-l' in sys.argv
     shuffle = '--shuffle' in sys.argv or '-s' in sys.argv
+    no_comment = '--no-comment' in sys.argv or '-c' in sys.argv
     niconico = AutoNiconico()
-    niconico.play_ranking(url, loop=loop, shuffle=shuffle)
+    niconico.play_ranking(url, loop=loop, shuffle=shuffle, comment_off=no_comment)
