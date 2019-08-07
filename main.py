@@ -85,7 +85,7 @@ class AutoNiconico:
             self.play(url_p)
 
             while not self.is_ended():
-                sleep(1)
+                sleep(0.9)
 
 
 if __name__ == '__main__':
