@@ -1,5 +1,5 @@
 from typing import List
-from time import sleep
+from time import sleep, strptime
 from xml.etree import ElementTree
 from urllib import parse
 from random import sample
@@ -69,14 +69,14 @@ class AutoNiconico:
 
     def get_duration(self):
         duration_panel = self.driver.find_element_by_class_name('PlayerPlayTime-duration')
-        return duration_panel.text
+        return strptime(duration_panel.text, '%M:%S')
 
     def get_playtime(self):
         playtime_panel = self.driver.find_element_by_class_name('PlayerPlayTime-playtime')
-        return playtime_panel.text
+        return strptime(playtime_panel.text, '%M:%S')
 
     def video_is_ended(self):
-        return self.get_duration() == self.get_playtime()
+        return self.get_duration() < self.get_playtime()
 
     def comment_is_on(self):
         try:
@@ -110,7 +110,10 @@ class AutoNiconico:
         playlist_p = iter(playlist_p)
 
         while True:
-            url_p = urls[next(playlist_p)]
+            try:
+                url_p = urls[next(playlist_p)]
+            except StopIteration:
+                break
 
             self.play(url_p, comment_off=comment_off)
 
@@ -137,8 +140,10 @@ if __name__ == '__main__':
     for arg in sys.argv:
         if arg[:7] == '--user=':
             user = arg[7:]
+            login = True
         if arg[:11] == '--password=':
             password = arg[11:]
+            login = True
 
     niconico = AutoNiconico()
     if login:
