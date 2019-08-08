@@ -50,8 +50,8 @@ class AutoNiconico:
             try:
                 ad_frame = self.driver.find_element_by_xpath('//*[@id="IMALinearView"]/div[1]/iframe')
             except NoSuchElementException:
-                sleep(0.5)
-                t += 0.5
+                sleep(0.1)
+                t += 0.1
                 if t >= frame_timeout:
                     # print('フレームがない')
                     return None
@@ -134,8 +134,8 @@ class AutoNiconico:
                 if t >= frame_timeout:
                     # print('フレームがない')
                     return True
-                sleep(0.5)
-                t += 0.5
+                sleep(0.1)
+                t += 0.1
                 continue
             break
 
@@ -197,7 +197,7 @@ class AutoNiconico:
             self.play(url_p, comment_off=comment_off, fullscreen=fullscreen)
 
             while not self.video_is_ended():
-                sleep(0.9)
+                sleep(0.1)
 
 
 if __name__ == '__main__':
