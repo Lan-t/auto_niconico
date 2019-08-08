@@ -165,20 +165,33 @@ class AutoNiconico:
         else:
             return True
 
-    def get_urls_from_ranking(self, url) -> List[str]:
+    def set_requests_session(self):
+        session = requests.session()
+        for cookie in self.driver.get_cookies():
+            session.cookies.set(cookie['name'], cookie['value'])
+        return session
+
+    def get_xml(self, url, query=None):
+        query = query or {}
+        session = self.set_requests_session()
         pr = parse.urlparse(url)
         d = parse.parse_qs(pr.query)
         d['rss'] = ["2.0"]
+        for k, v in query.items():
+            d[k] = v
         url = pr.scheme + '://' + pr.netloc + pr.path + '?' + '&'.join([f'{k}={",".join(v)}' for k, v in d.items()])
-        res = requests.get(url)
-        root = ElementTree.fromstring(res.text)
-        items = root[0][10:]
+        res = session.get(url)
+        xml = ElementTree.fromstring(res.text)
+        return xml
+
+    def get_urls_from_any(self, url):
+        root = self.get_xml(url)
+        channel = root[0]
         link = 1
+        return [i[link].text for i in channel if i.tag == 'item']
 
-        return [i[link].text for i in items]
-
-    def play_ranking(self, url, loop=True, shuffle=False, comment_off=True, fullscreen=True):
-        urls = self.get_urls_from_ranking(url)
+    def play_anylist(self, url, loop=True, shuffle=False, comment_off=True, fullscreen=True):
+        urls = self.get_urls_from_any(url)
 
         playlist_p = range(len(urls))
         if shuffle:
@@ -213,8 +226,8 @@ if __name__ == '__main__':
     loop = '--loop' in argv or '-l' in argv
     shuffle = '--shuffle' in argv or '-s' in argv
     no_comment = '--no-comment' in argv or '-c' in argv
-    login = '--login' in argv or '-a' in argv
     fullscreen = '--fullscreen' in argv or '-f' in argv
+    login = '--login' in argv or '-a' in argv
     user = ''
     password = ''
     for arg in sys.argv:
@@ -228,4 +241,4 @@ if __name__ == '__main__':
     niconico = AutoNiconico()
     if login:
         niconico.login(username=user, password=password)
-    niconico.play_ranking(url, loop=loop, shuffle=shuffle, comment_off=no_comment, fullscreen=fullscreen)
+    niconico.play_anylist(url, loop=loop, shuffle=shuffle, comment_off=no_comment, fullscreen=fullscreen)
