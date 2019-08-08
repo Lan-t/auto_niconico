@@ -57,6 +57,8 @@ class AutoNiconico:
                     return None
                 continue
             break
+        if not self.mute_is_on():
+            self.click_mute_button()
         self.driver.switch_to.frame(ad_frame)
         try:
             sleep(click_timeout)
@@ -64,9 +66,14 @@ class AutoNiconico:
         except NoSuchElementException:
             # print('スキップボタンない')
             self.driver.switch_to.parent_frame()
-            return False
-        self.must_click(skip_button.click)
-        self.driver.switch_to.parent_frame()
+            while not self.ad_is_ended():
+                sleep(0.1)
+        else:
+            self.must_click(skip_button.click)
+            self.driver.switch_to.parent_frame()
+
+        if self.mute_is_on():
+            self.click_mute_button()
         return True
 
     def click_play_pause_button(self):
@@ -84,12 +91,18 @@ class AutoNiconico:
         except NoSuchElementException:
             self.driver.find_element_by_class_name('EnableFullScreenButton').click()
 
+    def click_mute_button(self):
+        try:
+            self.driver.find_element_by_class_name('MuteVideoButton').click()
+        except NoSuchElementException:
+            self.driver.find_element_by_class_name('UnMuteVideoButton').click()
+
     def must_click(self, click_method):
         while True:
             try:
                 click_method()
             except ElementNotInteractableException:
-                sleep(0.5)
+                sleep(0.1)
                 continue
             break
 
@@ -112,9 +125,33 @@ class AutoNiconico:
     def video_is_ended(self):
         return self.get_duration() <= self.get_playtime()
 
+    def ad_is_ended(self, frame_timeout=1):
+        t = 0
+        while True:
+            try:
+                ad_frame = self.driver.find_element_by_xpath('//*[@id="IMALinearView"]/div[1]/iframe')
+            except NoSuchElementException:
+                if t >= frame_timeout:
+                    # print('フレームがない')
+                    return True
+                sleep(0.5)
+                t += 0.5
+                continue
+            break
+
+        return not ad_frame.is_displayed()
+
     def comment_is_on(self):
         try:
             self.driver.find_element_by_class_name('CommentOnOffButton-iconShow')
+        except NoSuchElementException:
+            return True
+        else:
+            return False
+
+    def mute_is_on(self):
+        try:
+            self.driver.find_element_by_class_name('MuteVideoButton')
         except NoSuchElementException:
             return True
         else:
